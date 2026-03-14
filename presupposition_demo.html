@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Presupposition Projection Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f9f8f6;
+    --surface: #ffffff;
+    --surface2: #f2f1ee;
+    --border: #e2e0da;
+    --border2: #ccc9c0;
+    --text: #1a1917;
+    --text2: #6b6860;
+    --text3: #9c9a94;
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+    --blue-text: #0C447C;
+    --green: #0F6E56;
+    --green-bg: #E1F5EE;
+    --green-text: #085041;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --red-text: #791F1F;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --amber-text: #633806;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  header {
+    background: var(--text);
+    color: #fff;
+    padding: 2.5rem 2rem 2rem;
+  }
+
+  header .eyebrow {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 0.5rem;
+  }
+
+  header h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+
+  header p {
+    font-size: 0.95rem;
+    color: #bbb;
+    max-width: 580px;
+    line-height: 1.6;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #ccc;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .section-label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+    margin-top: 2rem;
+  }
+
+  .trigger-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    margin-bottom: 0.5rem;
+  }
+
+  .trigger-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .trigger-btn:hover { border-color: var(--border2); }
+
+  .trigger-btn.active {
+    border: 2px solid var(--blue);
+    background: var(--blue-bg);
+  }
+
+  .trigger-btn .tb-name {
+    font-family: Georgia, serif;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text);
+  }
+
+  .trigger-btn.active .tb-name { color: var(--blue-text); }
+
+  .trigger-btn .tb-ex {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 3px;
+  }
+
+  .trigger-btn.active .tb-ex { color: var(--blue); }
+
+  .env-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .env-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 8px;
+    cursor: pointer;
+    font-family: Georgia, serif;
+    font-size: 13px;
+    color: var(--text2);
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .env-btn:hover { border-color: var(--border2); color: var(--text); }
+
+  .env-btn.active {
+    border: 2px solid var(--green);
+    background: var(--green-bg);
+    color: var(--green-text);
+    font-weight: bold;
+  }
+
+  .sentence-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .sentence-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .presup-line {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .presup-line strong { color: var(--text); }
+
+  .hypothesis-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 0.5rem;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: Georgia, serif;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus { border-color: var(--blue); }
+
+  .run-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-family: Georgia, serif;
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+
+  .run-btn:hover { opacity: 0.85; }
+  .run-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 1.5rem;
+    display: none;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .label-badge {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  .badge-E { background: var(--green-bg); color: var(--green-text); }
+  .badge-C { background: var(--red-bg); color: var(--red-text); }
+  .badge-N { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-loading { background: var(--surface2); color: var(--text3); font-size: 14px; }
+
+  .result-label-meta { font-family: 'Courier New', monospace; font-size: 11px; color: var(--text3); }
+  .result-label-name { font-size: 16px; font-weight: bold; color: var(--text); margin-top: 2px; }
+
+  .result-body {
+    padding: 1rem 1.5rem;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .gold-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .verdict {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+  }
+
+  .verdict.correct { background: var(--green-bg); color: var(--green-text); }
+  .verdict.incorrect { background: var(--red-bg); color: var(--red-text); }
+
+  hr.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  .custom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 600px) {
+    .custom-grid { grid-template-columns: 1fr; }
+    .env-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .field-label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 5px;
+    letter-spacing: 0.05em;
+  }
+
+  .custom-run-row {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">LING/CS/DSCI 329 &nbsp;·&nbsp; Group 5 &nbsp;·&nbsp; Live Demo</div>
+  <h1>Presupposition Projection</h1>
+  <p>Does a background assumption survive when embedded under negation, questions, or belief contexts? Test how an LLM labels the relationship between a premise and hypothesis.</p>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div> E — Entailment (presupposition projects)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> C — Contradiction (presupposition contradicted)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> N — Neutral (presupposition doesn't hold)</div>
+  </div>
+</header>
+
+<main>
+
+  <div class="section-label">1 · Choose a presupposition trigger</div>
+  <div class="trigger-grid" id="triggerGrid"></div>
+
+  <div class="section-label">2 · Choose an embedding environment</div>
+  <div class="env-grid" id="envGrid"></div>
+
+  <div class="section-label">3 · Premise &amp; presupposition</div>
+  <div class="sentence-card">
+    <div class="sentence-text" id="sentenceDisplay">—</div>
+    <div class="presup-line">Triggered presupposition: <strong id="presupDisplay">—</strong></div>
+  </div>
+
+  <div class="section-label">4 · Hypothesis to test</div>
+  <div class="hypothesis-row">
+    <input type="text" id="hypothesisInput" placeholder="e.g. Emily has a best friend." />
+    <button class="run-btn" id="runBtn" onclick="runTest()">Ask the model →</button>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="label-badge badge-loading" id="labelBadge">…</div>
+      <div>
+        <div class="result-label-meta">model label</div>
+        <div class="result-label-name" id="labelName">Thinking...</div>
+      </div>
+    </div>
+    <div class="result-body" id="resultBody"></div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="section-label">Try your own sentence</div>
+  <div class="custom-grid">
+    <div>
+      <div class="field-label">Premise</div>
+      <input type="text" id="customPremise" placeholder="e.g. Sam regrets that he quit smoking." style="width:100%;" />
+    </div>
+    <div>
+      <div class="field-label">Hypothesis</div>
+      <input type="text" id="customHypothesis" placeholder="e.g. Sam used to smoke." style="width:100%;" />
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:1.25rem;">Embedding environment (optional context)</div>
+  <div class="env-grid" id="customEnvGrid"></div>
+
+  <div class="custom-run-row">
+    <button class="run-btn" onclick="runCustom()">Ask the model →</button>
+  </div>
+
+  <div class="result-card" id="customResultCard">
+    <div class="result-header">
+      <div class="label-badge badge-loading" id="customLabelBadge">…</div>
+      <div>
+        <div class="result-label-meta">model label</div>
+        <div class="result-label-name" id="customLabelName">Thinking...</div>
+      </div>
+    </div>
+    <div class="result-body" id="customResultBody"></div>
+  </div>
+
+</main>
+
+<footer>CS/LING/DSCI 329 · Emory University · Presupposition Projection Demo</footer>
+
+<script>
+const TRIGGERS = [
+  {
+    id: 'factive', label: 'Factive verb', example: 'know / realize',
+    presup: 'The embedded proposition is true',
+    sentences: {
+      plain:    'Emily knows that she has a best friend.',
+      negation: "It's not the case that Emily knows that she has a best friend.",
+      belief:   'Sam believes that Emily knows that she has a best friend.',
+      question: 'Is it true that Emily knows that she has a best friend?'
+    },
+    hypotheses: { plain: 'Emily has a best friend.', negation: 'Emily has a best friend.', belief: 'Emily has a best friend.', question: 'Emily has a best friend.' },
+    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' }
+  },
+  {
+    id: 'aspectual', label: 'Aspectual verb', example: 'stop / start',
+    presup: 'The activity occurred before (stop) or not before (start)',
+    sentences: {
+      plain:    'Claire stopped practicing piano.',
+      negation: "It's not the case that Claire stopped practicing piano.",
+      belief:   'Sam believes that Claire stopped practicing piano.',
+      question: 'Is it true that Claire stopped practicing piano?'
+    },
+    hypotheses: { plain: 'Claire used to practice piano.', negation: 'Claire used to practice piano.', belief: 'Claire used to practice piano.', question: 'Claire used to practice piano.' },
+    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' }
+  },
+  {
+    id: 'iterative', label: 'Iterative', example: 'again / another',
+    presup: 'A prior occurrence of the event took place',
+    sentences: {
+      plain:    'Alex ran a marathon again.',
+      negation: "It's not the case that Alex ran a marathon again.",
+      belief:   'Sam believes that Alex ran a marathon again.',
+      question: 'Is it true that Alex ran a marathon again?'
+    },
+    hypotheses: { plain: 'Alex has run a marathon before.', negation: 'Alex has run a marathon before.', belief: 'Alex has run a marathon before.', question: 'Alex has run a marathon before.' },
+    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' }
+  },
+  {
+    id: 'change', label: 'Change of state', example: 'realize / notice',
+    presup: 'Prior ignorance of the fact',
+    sentences: {
+      plain:    'Jordan realized that the meeting was cancelled.',
+      negation: "It's not the case that Jordan realized that the meeting was cancelled.",
+      belief:   'Sam believes that Jordan realized that the meeting was cancelled.',
+      question: 'Is it true that Jordan realized that the meeting was cancelled?'
+    },
+    hypotheses: { plain: 'Jordan did not know the meeting was cancelled before.', negation: 'Jordan did not know the meeting was cancelled before.', belief: 'Jordan did not know the meeting was cancelled before.', question: 'Jordan did not know the meeting was cancelled before.' },
+    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' }
+  }
+];
+
+const ENVS = [
+  { id: 'plain',    label: 'Plain assertion' },
+  { id: 'negation', label: 'Negation' },
+  { id: 'belief',   label: 'Belief context' },
+  { id: 'question', label: 'Question' }
+];
+
+const LABEL_NAMES = { E: 'Entailment', C: 'Contradiction', N: 'Neutral' };
+
+let selectedTrigger = TRIGGERS[0];
+let selectedEnv = 'plain';
+let selectedCustomEnv = 'plain';
+
+function renderTriggers() {
+  document.getElementById('triggerGrid').innerHTML = TRIGGERS.map(t => `
+    <button class="trigger-btn ${t.id === selectedTrigger.id ? 'active' : ''}" onclick="selectTrigger('${t.id}')">
+      <div class="tb-name">${t.label}</div>
+      <div class="tb-ex">${t.example}</div>
+    </button>`).join('');
+}
+
+function renderEnvs(gridId, selected, fn) {
+  document.getElementById(gridId).innerHTML = ENVS.map(e => `
+    <button class="env-btn ${e.id === selected ? 'active' : ''}" onclick="${fn}('${e.id}')">${e.label}</button>`).join('');
+}
+
+function updateSentence() {
+  document.getElementById('sentenceDisplay').textContent = selectedTrigger.sentences[selectedEnv];
+  document.getElementById('presupDisplay').textContent = selectedTrigger.presup;
+  document.getElementById('hypothesisInput').value = selectedTrigger.hypotheses[selectedEnv];
+  document.getElementById('resultCard').style.display = 'none';
+}
+
+function selectTrigger(id) {
+  selectedTrigger = TRIGGERS.find(t => t.id === id);
+  renderTriggers();
+  updateSentence();
+}
+
+function selectEnv(id) {
+  selectedEnv = id;
+  renderEnvs('envGrid', selectedEnv, 'selectEnv');
+  updateSentence();
+}
+
+function selectCustomEnv(id) {
+  selectedCustomEnv = id;
+  renderEnvs('customEnvGrid', selectedCustomEnv, 'selectCustomEnv');
+}
+
+async function callAPI({ premise, hypothesis, cardId, badgeId, nameId, bodyId, gold }) {
+  const card = document.getElementById(cardId);
+  const badge = document.getElementById(badgeId);
+  const nameEl = document.getElementById(nameId);
+  const body = document.getElementById(bodyId);
+  const btn = document.getElementById('runBtn');
+
+  card.style.display = 'block';
+  badge.className = 'label-badge badge-loading';
+  badge.textContent = '…';
+  nameEl.textContent = 'Thinking...';
+  body.innerHTML = '';
+  if (btn) btn.disabled = true;
+
+  const system = `You are a linguistics expert specializing in presupposition projection. Given a premise and a hypothesis, output:
+1. A label on its own line: E (Entailment), C (Contradiction), or N (Neutral)
+2. A brief 1–2 sentence explanation of your reasoning.
+
+E = the presupposition in the hypothesis is a background assumption that projects from the premise (holds even under negation, questions, or modals).
+C = the hypothesis directly contradicts what the premise presupposes.
+N = the hypothesis is neither entailed nor contradicted by the premise's presuppositions.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system,
+        messages: [{ role: 'user', content: `Premise: "${premise}"\nHypothesis: "${hypothesis}"\n\nLabel:` }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = (data.content?.[0]?.text || '').trim();
+    const lines = text.split('\n');
+    const rawLabel = lines[0].replace(/[^ECN]/g, '').charAt(0);
+    const label = ['E','C','N'].includes(rawLabel) ? rawLabel : '?';
+    const explanation = lines.slice(1).join(' ').trim();
+
+    badge.className = `label-badge badge-${label}`;
+    badge.textContent = label;
+    nameEl.textContent = LABEL_NAMES[label] || 'Unknown';
+    body.textContent = explanation;
+
+    if (gold) {
+      const match = label === gold;
+      const div = document.createElement('div');
+      div.className = 'gold-row';
+      div.innerHTML = `Gold label: <strong>${gold} — ${LABEL_NAMES[gold]}</strong><span class="verdict ${match ? 'correct' : 'incorrect'}">${match ? 'CORRECT' : 'INCORRECT'}</span>`;
+      body.appendChild(div);
+    }
+  } catch(e) {
+    nameEl.textContent = 'Error';
+    body.textContent = 'Could not reach the API. Make sure you are running this via a server that proxies the Anthropic API key.';
+  }
+
+  if (btn) btn.disabled = false;
+}
+
+function runTest() {
+  const premise = selectedTrigger.sentences[selectedEnv];
+  const hypothesis = document.getElementById('hypothesisInput').value.trim() || selectedTrigger.hypotheses[selectedEnv];
+  callAPI({ premise, hypothesis, cardId: 'resultCard', badgeId: 'labelBadge', nameId: 'labelName', bodyId: 'resultBody', gold: selectedTrigger.gold[selectedEnv] });
+}
+
+function runCustom() {
+  const premise = document.getElementById('customPremise').value.trim();
+  const hypothesis = document.getElementById('customHypothesis').value.trim();
+  if (!premise || !hypothesis) return alert('Please enter both a premise and a hypothesis.');
+  callAPI({ premise, hypothesis, cardId: 'customResultCard', badgeId: 'customLabelBadge', nameId: 'customLabelName', bodyId: 'customResultBody', gold: null });
+}
+
+renderTriggers();
+renderEnvs('envGrid', selectedEnv, 'selectEnv');
+renderEnvs('customEnvGrid', selectedCustomEnv, 'selectCustomEnv');
+updateSentence();
+</script>
+</body>
+</html>
