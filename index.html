@@ -150,7 +150,7 @@
 
   .env-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
 
@@ -400,130 +400,114 @@ const TRIGGERS = [
     id: 'factive', label: 'Factive verb', example: 'know / realize',
     presup: 'The embedded proposition is true',
     sentences: {
-      plain:    'Cora knows that her roommate is moving out.',
       negation: "It's not the case that Cora knows that her roommate is moving out.",
-      belief:   'Srijon believes that Cora knows that her roommate is moving out.',
-      question: 'Is it true that Cora knows that her roommate is moving out?'
+      question: 'Does Cora know that her roommate is moving out?',
+      modal:    'Cora might know that her roommate is moving out.'
     },
     hypotheses: {
-      plain:    "Cora's roommate is moving out.",
       negation: "Cora's roommate is moving out.",
-      belief:   "Cora's roommate is moving out.",
-      question: "Cora's roommate is moving out."
+      question: "Cora's roommate is not moving out.",
+      modal:    "Cora's roommate is moving out."
     },
-    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' },
+    gold: { negation: 'E', question: 'C', modal: 'E' },
     results: {
-      plain:    { label: 'E', explanation: "The verb 'knows' is factive — it presupposes the truth of its complement clause. That Cora's roommate is moving out is a background assumption that must be true for the sentence to be felicitous." },
-      negation: { label: 'E', explanation: "Factive presuppositions project under negation. Even when we say Cora doesn't know, the sentence still takes for granted that her roommate is in fact moving out." },
-      belief:   { label: 'E', explanation: "The factive presupposition escapes the belief context. That Cora's roommate is moving out is presented as a real-world fact, not merely a part of Srijon's belief." },
-      question: { label: 'E', explanation: "In polar questions, factive presuppositions still project. Both 'yes' and 'no' answers to this question assume Cora's roommate is moving out." }
+      negation: { label: 'E', explanation: "Factive verbs presuppose the truth of their complement clause. Even under negation, 'not knowing' still takes for granted that Cora's roommate is in fact moving out." },
+      question: { label: 'N', explanation: "The question leaves open whether Cora knows, so it is unclear whether her roommate is moving out or not. Since the truth value is suspended, the relationship appears neutral." },
+      modal:    { label: 'E', explanation: "Factive presuppositions are robust even under epistemic modals like 'might'. The background assumption that Cora's roommate is moving out projects out of the modal context." }
     }
   },
   {
     id: 'aspectual', label: 'Aspectual verb', example: 'stop / start',
     presup: 'The activity occurred before (stop) or not before (start)',
     sentences: {
-      plain:    'Claire stopped drinking coffee.',
       negation: "It's not the case that Claire stopped drinking coffee.",
-      belief:   'Ramlah believes that Claire stopped drinking coffee.',
-      question: 'Is it true that Claire stopped drinking coffee?'
+      question: 'Did Claire stop drinking coffee?',
+      modal:    'Claire might have stopped drinking coffee.'
     },
     hypotheses: {
-      plain:    'Claire used to drink coffee.',
       negation: 'Claire used to drink coffee.',
-      belief:   'Claire used to drink coffee.',
-      question: 'Claire used to drink coffee.'
+      question: 'Claire used to drink coffee.',
+      modal:    'Claire used to drink coffee.'
     },
-    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' },
+    gold: { negation: 'E', question: 'E', modal: 'E' },
     results: {
-      plain:    { label: 'E', explanation: "'Stop' is an aspectual verb that presupposes the prior occurrence of the activity. The hypothesis that Claire used to drink coffee is a background assumption required for the sentence to make sense." },
-      negation: { label: 'E', explanation: "Aspectual presuppositions are robust under negation. Whether or not Claire stopped, the sentence still takes for granted that she was drinking coffee before." },
-      belief:   { label: 'E', explanation: "The presupposition projects out of the belief context. Claire's prior coffee-drinking habit is treated as a real-world background fact, not merely part of Ramlah's belief." },
-      question: { label: 'E', explanation: "The presupposition from 'stopped' survives in a question. Both possible answers presuppose Claire previously drank coffee — the question only asks about the stopping." }
+      negation: { label: 'E', explanation: "Aspectual presuppositions project under negation. Whether or not Claire stopped, the sentence still takes for granted that she was drinking coffee before." },
+      question: { label: 'E', explanation: "The presupposition from 'stopped' survives in a question. Both 'yes' and 'no' answers presuppose Claire previously drank coffee — the question only asks about the stopping." },
+      modal:    { label: 'N', explanation: "Under the modal 'might', the sentence only suggests a possibility. Since it is not asserted that Claire actually stopped, the prior activity cannot be presupposed, making the relationship neutral." }
     }
   },
   {
     id: 'iterative', label: 'Iterative', example: 'again / another',
     presup: 'A prior occurrence of the event took place',
     sentences: {
-      plain:    'Ramlah aced the exam again.',
       negation: "It's not the case that Ramlah aced the exam again.",
-      belief:   'Cora believes that Ramlah aced the exam again.',
-      question: 'Is it true that Ramlah aced the exam again?'
+      question: 'Did Ramlah ace the exam again?',
+      modal:    'Ramlah might ace the exam again.'
     },
     hypotheses: {
-      plain:    'Ramlah has aced an exam before.',
       negation: 'Ramlah has aced an exam before.',
-      belief:   'Ramlah has aced an exam before.',
-      question: 'Ramlah has aced an exam before.'
+      question: 'Ramlah has aced an exam before.',
+      modal:    'Ramlah has never taken this exam before.'
     },
-    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' },
+    gold: { negation: 'E', question: 'E', modal: 'C' },
     results: {
-      plain:    { label: 'E', explanation: "The iterative marker 'again' triggers a presupposition that the event occurred at least once before. The hypothesis is directly entailed as a background assumption by the use of 'again'." },
-      negation: { label: 'E', explanation: "Iterative presuppositions project under negation. The negation only denies this particular instance, while the prior occurrence remains a presupposed background fact." },
-      belief:   { label: 'E', explanation: "The iterative presupposition escapes the belief operator. That Ramlah has aced an exam before is presented as a real-world fact, not merely something Cora believes." },
-      question: { label: 'E', explanation: "The presupposition from 'again' projects through the question. Both 'yes' and 'no' answers presuppose Ramlah had previously aced an exam — only the current instance is in question." }
+      negation: { label: 'E', explanation: "Iterative presuppositions project under negation. The negation denies the current instance while the prior occurrence — presupposed by 'again' — remains as background." },
+      question: { label: 'E', explanation: "The presupposition from 'again' projects through the question. Both possible answers assume Ramlah had previously aced an exam; only whether she did so this time is in question." },
+      modal:    { label: 'N', explanation: "'Again' under a modal only suggests a possible repetition. The hypothesis about never having taken the exam doesn't directly conflict with a mere possibility, making the relationship neutral." }
     }
   },
   {
     id: 'change', label: 'Change of state', example: 'realize / notice',
     presup: 'Prior ignorance of the fact',
     sentences: {
-      plain:    'Srijon realized that the deadline was moved up.',
       negation: "It's not the case that Srijon realized that the deadline was moved up.",
-      belief:   'Claire believes that Srijon realized that the deadline was moved up.',
-      question: 'Is it true that Srijon realized that the deadline was moved up?'
+      question: 'Did Srijon realize that the deadline was moved up?',
+      modal:    'Srijon might have realized that the deadline was moved up.'
     },
     hypotheses: {
-      plain:    'Srijon did not know the deadline was moved up before.',
       negation: 'Srijon did not know the deadline was moved up before.',
-      belief:   'Srijon did not know the deadline was moved up before.',
-      question: 'Srijon did not know the deadline was moved up before.'
+      question: 'Srijon already knew about the deadline change.',
+      modal:    'Srijon did not know the deadline was moved up before.'
     },
-    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' },
+    gold: { negation: 'E', question: 'C', modal: 'E' },
     results: {
-      plain:    { label: 'E', explanation: "'Realize' presupposes a prior state of ignorance — the subject didn't know the fact before the realization. That Srijon was previously unaware of the deadline change is entailed as background." },
       negation: { label: 'E', explanation: "Change-of-state presuppositions project under negation. Whether or not Srijon realized it, the sentence still presupposes he was previously ignorant of the deadline change." },
-      belief:   { label: 'E', explanation: "The presupposition projects out of the belief context. Srijon's prior ignorance of the deadline change is a background fact in the real world, not merely part of Claire's belief." },
-      question: { label: 'E', explanation: "The change-of-state presupposition survives in a question. Either answer assumes Srijon was previously unaware — the question only asks whether the realization occurred." }
+      question: { label: 'N', explanation: "The question leaves open whether the realization occurred. Whether Srijon already knew is a separate matter from what the question asserts, so the relationship appears neutral." },
+      modal:    { label: 'E', explanation: "'Realize' presupposes prior ignorance even under a modal. The background assumption that Srijon did not previously know about the deadline change projects out of the 'might have' context." }
     }
   },
   {
     id: 'cleft', label: 'Cleft construction', example: 'It was X who...',
     presup: 'The described event occurred (only the identity is at issue)',
     sentences: {
-      plain:    'It was Ramlah who found the bug in the code.',
       negation: "It wasn't Ramlah who found the bug in the code.",
-      belief:   'Srijon believes it was Ramlah who found the bug in the code.',
-      question: 'Was it Ramlah who found the bug in the code?'
+      question: 'Was it Ramlah who found the bug in the code?',
+      modal:    'It might have been Ramlah who found the bug in the code.'
     },
     hypotheses: {
-      plain:    'Someone found the bug in the code.',
       negation: 'Someone found the bug in the code.',
-      belief:   'Someone found the bug in the code.',
-      question: 'Someone found the bug in the code.'
+      question: 'Someone found the bug in the code.',
+      modal:    'Someone found the bug in the code.'
     },
-    gold: { plain: 'E', negation: 'E', belief: 'E', question: 'E' },
+    gold: { negation: 'E', question: 'E', modal: 'E' },
     results: {
-      plain:    { label: 'E', explanation: "Cleft constructions presuppose the truth of the relative clause — here, that someone found the bug. The sentence merely identifies who did it; the event itself is background." },
-      negation: { label: 'E', explanation: "Even when the cleft is negated ('It wasn't Ramlah...'), the presupposition that someone found the bug is preserved. Only the identity claim is denied." },
-      belief:   { label: 'E', explanation: "The cleft presupposition projects out of the belief context. That someone found the bug is a real-world background fact independent of what Srijon believes." },
-      question: { label: 'E', explanation: "In a cleft question, the presupposition still projects. Both answers presuppose the bug was found by someone — only the identity of who did it is at issue." }
+      negation: { label: 'E', explanation: "Even under negation, the cleft presupposition holds. 'It wasn't Ramlah...' denies the identity but still presupposes that someone found the bug." },
+      question: { label: 'N', explanation: "A cleft question asks about identity, not about whether the event occurred. Since the question does not assert the event happened, it is unclear whether someone found the bug." },
+      modal:    { label: 'E', explanation: "Cleft presuppositions project even under epistemic modals. The background assumption that someone found the bug is preserved regardless of uncertainty about who it was." }
     }
   }
 ];
 
 const ENVS = [
-  { id: 'plain',    label: 'Plain assertion' },
   { id: 'negation', label: 'Negation' },
-  { id: 'belief',   label: 'Belief context' },
-  { id: 'question', label: 'Question' }
+  { id: 'question', label: 'Question' },
+  { id: 'modal',    label: 'Modal' }
 ];
 
 const LABEL_NAMES = { E: 'Entailment', C: 'Contradiction', N: 'Neutral' };
 
 let selectedTrigger = TRIGGERS[0];
-let selectedEnv = 'plain';
+let selectedEnv = 'negation';
 
 function renderTriggers() {
   document.getElementById('triggerGrid').innerHTML = TRIGGERS.map(t => `
