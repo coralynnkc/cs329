@@ -106,6 +106,34 @@
     margin-top: 2rem;
   }
 
+  .lang-grid {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .lang-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--text2);
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .lang-btn:hover { border-color: var(--border2); color: var(--text); }
+
+  .lang-btn.active {
+    border: 2px solid var(--blue);
+    background: var(--blue-bg);
+    color: var(--blue-text);
+    font-weight: bold;
+  }
+
   .trigger-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -360,6 +388,9 @@
 
 <main>
 
+  <div class="section-label">0 · Choose a language</div>
+  <div class="lang-grid" id="langGrid"></div>
+
   <div class="section-label">1 · Choose a presupposition trigger</div>
   <div class="trigger-grid" id="triggerGrid"></div>
 
@@ -498,6 +529,460 @@ const TRIGGERS = [
   }
 ];
 
+// Per-language overrides: sentences, hypotheses, and Claude's (simulated) results.
+// Gold labels are the same across languages — these are cross-linguistic facts.
+// Error rates increase for lower-resource / typologically distant languages.
+const LANG_DATA = {
+  de: { // German — ~47% error rate
+    factive: {
+      sentences: {
+        negation: "Es ist nicht der Fall, dass Cora weiß, dass ihre Mitbewohnerin auszieht.",
+        question: "Weiß Cora, dass ihre Mitbewohnerin auszieht?",
+        modal:    "Cora könnte wissen, dass ihre Mitbewohnerin auszieht."
+      },
+      hypotheses: {
+        negation: "Coras Mitbewohnerin zieht aus.",
+        question: "Coras Mitbewohnerin zieht nicht aus.",
+        modal:    "Coras Mitbewohnerin zieht aus."
+      },
+      results: {
+        negation: { label: 'E', explanation: "Even under negation, the factive presupposition holds. The sentence still takes for granted that the roommate is moving out." },
+        question: { label: 'N', explanation: "The question leaves the truth of the complement open. Whether the roommate is moving out cannot be determined from the question alone." },
+        modal:    { label: 'E', explanation: "The factive presupposition projects through the modal. The background assumption that the roommate is moving out is preserved." }
+      }
+    },
+    aspectual: {
+      sentences: {
+        negation: "Es ist nicht der Fall, dass Claire aufgehört hat, Kaffee zu trinken.",
+        question: "Hat Claire aufgehört, Kaffee zu trinken?",
+        modal:    "Claire könnte aufgehört haben, Kaffee zu trinken."
+      },
+      hypotheses: {
+        negation: "Claire hat früher Kaffee getrunken.",
+        question: "Claire hat früher Kaffee getrunken.",
+        modal:    "Claire hat früher Kaffee getrunken."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The aspectual presupposition projects under negation. The sentence presupposes prior coffee drinking regardless of the negation." },
+        question: { label: 'N', explanation: "The question does not assert whether Claire stopped, so it is unclear whether she previously drank coffee. The relationship cannot be determined." },
+        modal:    { label: 'N', explanation: "The modal 'könnte' introduces uncertainty about whether the stopping occurred. Without a firm assertion, the prior activity is not clearly presupposed." }
+      }
+    },
+    iterative: {
+      sentences: {
+        negation: "Es ist nicht der Fall, dass Ramlah die Prüfung wieder bestanden hat.",
+        question: "Hat Ramlah die Prüfung wieder bestanden?",
+        modal:    "Ramlah könnte die Prüfung wieder bestehen."
+      },
+      hypotheses: {
+        negation: "Ramlah hat eine Prüfung schon einmal bestanden.",
+        question: "Ramlah hat eine Prüfung schon einmal bestanden.",
+        modal:    "Ramlah hat diese Prüfung noch nie gemacht."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The iterative presupposition from 'wieder' projects under negation. A prior passing is still presupposed." },
+        question: { label: 'E', explanation: "Both yes and no answers to the question presuppose a prior instance. The iterative presupposition is robust in the question context." },
+        modal:    { label: 'N', explanation: "Under the modal, 'wieder' only suggests a possible repetition. The hypothesis about never having taken the exam does not clearly conflict with this possibility." }
+      }
+    },
+    change: {
+      sentences: {
+        negation: "Es ist nicht der Fall, dass Srijon bemerkt hat, dass die Frist vorgezogen wurde.",
+        question: "Hat Srijon bemerkt, dass die Frist vorgezogen wurde?",
+        modal:    "Srijon könnte bemerkt haben, dass die Frist vorgezogen wurde."
+      },
+      hypotheses: {
+        negation: "Srijon wusste vorher nicht, dass die Frist vorgezogen wurde.",
+        question: "Srijon wusste bereits von der Friständerung.",
+        modal:    "Srijon wusste vorher nicht, dass die Frist vorgezogen wurde."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The change-of-state presupposition projects under negation. Prior ignorance is still presupposed regardless of whether the realization occurred." },
+        question: { label: 'N', explanation: "The question leaves the realization open. Whether Srijon already knew cannot be determined from the question context." },
+        modal:    { label: 'E', explanation: "Prior ignorance is presupposed even under the modal. The background assumption projects out of the 'könnte' context." }
+      }
+    },
+    cleft: {
+      sentences: {
+        negation: "Es war nicht Ramlah, die den Fehler im Code gefunden hat.",
+        question: "War es Ramlah, die den Fehler im Code gefunden hat?",
+        modal:    "Es könnte Ramlah gewesen sein, die den Fehler im Code gefunden hat."
+      },
+      hypotheses: {
+        negation: "Jemand hat den Fehler im Code gefunden.",
+        question: "Jemand hat den Fehler im Code gefunden.",
+        modal:    "Jemand hat den Fehler im Code gefunden."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The cleft presupposition projects under negation. The identity is denied, but the event itself — that someone found the bug — is still presupposed." },
+        question: { label: 'N', explanation: "The cleft question only asks about who found the bug, not whether it was found. The existence of the event cannot be assumed from the question alone." },
+        modal:    { label: 'N', explanation: "Under the modal 'könnte', it is only possible that Ramlah found the bug. The hypothesis that someone found it does not clearly follow from a mere possibility." }
+      }
+    }
+  },
+
+  fr: { // French — ~60% error rate
+    factive: {
+      sentences: {
+        negation: "Il n'est pas vrai que Cora sache que sa colocataire déménage.",
+        question: "Cora sait-elle que sa colocataire déménage ?",
+        modal:    "Cora pourrait savoir que sa colocataire déménage."
+      },
+      hypotheses: {
+        negation: "La colocataire de Cora déménage.",
+        question: "La colocataire de Cora ne déménage pas.",
+        modal:    "La colocataire de Cora déménage."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The factive presupposition projects through negation. The sentence still takes for granted that the roommate is moving out." },
+        question: { label: 'N', explanation: "The question does not assert the truth of the complement. The relationship between premise and hypothesis cannot be determined." },
+        modal:    { label: 'N', explanation: "The modal introduces uncertainty about whether the knowing holds. Without a firm assertion, it is unclear whether the presupposition projects." }
+      }
+    },
+    aspectual: {
+      sentences: {
+        negation: "Il n'est pas vrai que Claire ait arrêté de boire du café.",
+        question: "Claire a-t-elle arrêté de boire du café ?",
+        modal:    "Claire pourrait avoir arrêté de boire du café."
+      },
+      hypotheses: {
+        negation: "Claire buvait du café avant.",
+        question: "Claire buvait du café avant.",
+        modal:    "Claire buvait du café avant."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The aspectual presupposition projects under negation. Prior coffee drinking is still taken for granted." },
+        question: { label: 'N', explanation: "The question does not commit to whether Claire stopped. The prior activity cannot be confidently inferred from the question form." },
+        modal:    { label: 'N', explanation: "The modal 'pourrait' only entertains a possibility. Without an assertion, the presupposed prior activity does not clearly hold." }
+      }
+    },
+    iterative: {
+      sentences: {
+        negation: "Il n'est pas vrai que Ramlah ait encore réussi l'examen.",
+        question: "Ramlah a-t-elle encore réussi l'examen ?",
+        modal:    "Ramlah pourrait encore réussir l'examen."
+      },
+      hypotheses: {
+        negation: "Ramlah a déjà réussi un examen.",
+        question: "Ramlah a déjà réussi un examen.",
+        modal:    "Ramlah n'a jamais passé cet examen."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The iterative presupposition projects under negation. The word 'encore' signals a prior event that is still taken for granted." },
+        question: { label: 'N', explanation: "The question asks whether the repeated event occurred. Whether there was a prior instance is left open and cannot be inferred." },
+        modal:    { label: 'N', explanation: "The modal makes the repetition only possible. A mere possibility does not clearly contradict the hypothesis about never having taken the exam." }
+      }
+    },
+    change: {
+      sentences: {
+        negation: "Il n'est pas vrai que Srijon ait réalisé que la date limite avait été avancée.",
+        question: "Srijon a-t-il réalisé que la date limite avait été avancée ?",
+        modal:    "Srijon pourrait avoir réalisé que la date limite avait été avancée."
+      },
+      hypotheses: {
+        negation: "Srijon ne savait pas que la date limite avait été avancée.",
+        question: "Srijon savait déjà que la date limite avait changé.",
+        modal:    "Srijon ne savait pas que la date limite avait été avancée."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The change-of-state presupposition holds under negation. Prior ignorance is still presupposed regardless of whether realization occurred." },
+        question: { label: 'N', explanation: "The question leaves the realization open. Whether Srijon already knew cannot be determined from the question context alone." },
+        modal:    { label: 'N', explanation: "The modal 'pourrait' makes the realization only a possibility. The presupposed prior ignorance does not clearly project under this uncertainty." }
+      }
+    },
+    cleft: {
+      sentences: {
+        negation: "Ce n'est pas Ramlah qui a trouvé le bogue dans le code.",
+        question: "Est-ce Ramlah qui a trouvé le bogue dans le code ?",
+        modal:    "C'est peut-être Ramlah qui a trouvé le bogue dans le code."
+      },
+      hypotheses: {
+        negation: "Quelqu'un a trouvé le bogue dans le code.",
+        question: "Quelqu'un a trouvé le bogue dans le code.",
+        modal:    "Quelqu'un a trouvé le bogue dans le code."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the identity of the person who found the bug. It is not clear from this sentence alone whether anyone actually found the bug." },
+        question: { label: 'N', explanation: "The cleft question asks who found the bug, not whether it was found. The existence of the finding event is left open." },
+        modal:    { label: 'E', explanation: "Even under the modal, the cleft construction presupposes that someone found the bug. The possibility only concerns the identity, not the event." }
+      }
+    }
+  },
+
+  ru: { // Russian — ~67% error rate
+    factive: {
+      sentences: {
+        negation: "Неверно, что Кора знает о том, что её соседка по комнате съезжает.",
+        question: "Знает ли Кора о том, что её соседка по комнате съезжает?",
+        modal:    "Кора, возможно, знает о том, что её соседка по комнате съезжает."
+      },
+      hypotheses: {
+        negation: "Соседка Коры по комнате съезжает.",
+        question: "Соседка Коры по комнате не съезжает.",
+        modal:    "Соседка Коры по комнате съезжает."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The factive presupposition projects through negation. The sentence still commits to the truth of the embedded clause about the roommate." },
+        question: { label: 'N', explanation: "The question does not commit to whether the knowing holds. The relationship between premise and hypothesis is indeterminate." },
+        modal:    { label: 'N', explanation: "The epistemic modal introduces uncertainty about the factive verb. Without a clear assertion, it is unclear whether the presupposed fact projects." }
+      }
+    },
+    aspectual: {
+      sentences: {
+        negation: "Неверно, что Клэр перестала пить кофе.",
+        question: "Клэр перестала пить кофе?",
+        modal:    "Клэр, возможно, перестала пить кофе."
+      },
+      hypotheses: {
+        negation: "Клэр раньше пила кофе.",
+        question: "Клэр раньше пила кофе.",
+        modal:    "Клэр раньше пила кофе."
+      },
+      results: {
+        negation: { label: 'E', explanation: "The aspectual presupposition projects under negation. Prior coffee drinking is still presupposed." },
+        question: { label: 'N', explanation: "The question does not assert whether stopping occurred. It is unclear whether prior coffee drinking can be inferred." },
+        modal:    { label: 'N', explanation: "The modal 'возможно' makes the stopping only possible. The prior activity is not clearly presupposed under this uncertainty." }
+      }
+    },
+    iterative: {
+      sentences: {
+        negation: "Неверно, что Рамла снова сдала экзамен на отлично.",
+        question: "Рамла снова сдала экзамен на отлично?",
+        modal:    "Рамла, возможно, снова сдаст экзамен на отлично."
+      },
+      hypotheses: {
+        negation: "Рамла уже сдавала экзамен на отлично.",
+        question: "Рамла уже сдавала экзамен на отлично.",
+        modal:    "Рамла никогда раньше не сдавала этот экзамен."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the current instance. Whether there was a prior successful exam cannot be determined from the negated sentence alone." },
+        question: { label: 'N', explanation: "The question asks about a repetition, but the premise does not establish whether a prior instance occurred. The relationship is indeterminate." },
+        modal:    { label: 'N', explanation: "The modal makes the repetition only possible. A mere possibility does not clearly contradict the claim about never having taken the exam." }
+      }
+    },
+    change: {
+      sentences: {
+        negation: "Неверно, что Сриджон осознал, что дедлайн перенесён на более ранний срок.",
+        question: "Осознал ли Сриджон, что дедлайн перенесён на более ранний срок?",
+        modal:    "Сриджон, возможно, осознал, что дедлайн перенесён на более ранний срок."
+      },
+      hypotheses: {
+        negation: "Сриджон раньше не знал о переносе дедлайна.",
+        question: "Сриджон уже знал об изменении дедлайна.",
+        modal:    "Сриджон раньше не знал о переносе дедлайна."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the realization. It is unclear from this sentence whether Srijon previously knew or did not know about the deadline." },
+        question: { label: 'N', explanation: "The question asks whether realization occurred, leaving prior knowledge open. The relationship between premise and hypothesis cannot be determined." },
+        modal:    { label: 'E', explanation: "Even under the modal, the change-of-state presupposition projects. Prior ignorance is still taken for granted as background." }
+      }
+    },
+    cleft: {
+      sentences: {
+        negation: "Это была не Рамла, которая нашла ошибку в коде.",
+        question: "Была ли это Рамла, которая нашла ошибку в коде?",
+        modal:    "Возможно, это была Рамла, которая нашла ошибку в коде."
+      },
+      hypotheses: {
+        negation: "Кто-то нашёл ошибку в коде.",
+        question: "Кто-то нашёл ошибку в коде.",
+        modal:    "Кто-то нашёл ошибку в коде."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the identity. Whether anyone found the bug at all is not clearly asserted by the premise and remains open." },
+        question: { label: 'N', explanation: "The question only asks about identity. The existence of the bug-finding event is not asserted and cannot be inferred." },
+        modal:    { label: 'E', explanation: "The cleft presupposition projects even under the modal. The event of finding the bug is still presupposed; only the identity is in question." }
+      }
+    }
+  },
+
+  hi: { // Hindi — ~80% error rate
+    factive: {
+      sentences: {
+        negation: "ऐसा नहीं है कि कोरा को पता है कि उसकी रूममेट जा रही है।",
+        question: "क्या कोरा को पता है कि उसकी रूममेट जा रही है?",
+        modal:    "कोरा शायद जानती हो कि उसकी रूममेट जा रही है।"
+      },
+      hypotheses: {
+        negation: "कोरा की रूममेट जा रही है।",
+        question: "कोरा की रूममेट नहीं जा रही है।",
+        modal:    "कोरा की रूममेट जा रही है।"
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation makes it unclear whether the embedded proposition holds. Whether the roommate is actually moving out cannot be determined from the negated premise." },
+        question: { label: 'N', explanation: "The question leaves the truth of the complement open. The relationship between premise and hypothesis is indeterminate." },
+        modal:    { label: 'N', explanation: "The modal 'शायद' introduces uncertainty. Without a clear assertion, it cannot be determined whether the embedded proposition is true." }
+      }
+    },
+    aspectual: {
+      sentences: {
+        negation: "ऐसा नहीं है कि क्लेयर ने कॉफ़ी पीना बंद कर दिया।",
+        question: "क्या क्लेयर ने कॉफ़ी पीना बंद कर दिया?",
+        modal:    "क्लेयर ने शायद कॉफ़ी पीना बंद कर दिया हो।"
+      },
+      hypotheses: {
+        negation: "क्लेयर पहले कॉफ़ी पीती थी।",
+        question: "क्लेयर पहले कॉफ़ी पीती थी।",
+        modal:    "क्लेयर पहले कॉफ़ी पीती थी।"
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the stopping. It is unclear from this whether Claire previously drank coffee; the prior state cannot be inferred." },
+        question: { label: 'N', explanation: "The question only asks whether stopping occurred. Prior coffee drinking is not asserted and the relationship cannot be determined." },
+        modal:    { label: 'N', explanation: "The modal makes the stopping only possible. The prior activity is not clearly presupposed under this uncertainty." }
+      }
+    },
+    iterative: {
+      sentences: {
+        negation: "ऐसा नहीं है कि रमला ने परीक्षा फिर से पास की।",
+        question: "क्या रमला ने परीक्षा फिर से पास की?",
+        modal:    "रमला शायद परीक्षा फिर से पास करे।"
+      },
+      hypotheses: {
+        negation: "रमला ने पहले भी परीक्षा पास की है।",
+        question: "रमला ने पहले भी परीक्षा पास की है।",
+        modal:    "रमला ने यह परीक्षा पहले कभी नहीं दी।"
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the current instance. Whether a prior passing occurred is not clearly established by the negated premise." },
+        question: { label: 'N', explanation: "The question asks about the current instance only. Whether Ramlah passed before cannot be determined from the question form." },
+        modal:    { label: 'C', explanation: "The iterative 'फिर से' presupposes a prior instance even under the modal. If Ramlah never took the exam, the presupposed repetition is contradicted." }
+      }
+    },
+    change: {
+      sentences: {
+        negation: "ऐसा नहीं है कि सृजन को एहसास हुआ कि समय सीमा आगे बढ़ा दी गई।",
+        question: "क्या सृजन को एहसास हुआ कि समय सीमा आगे बढ़ा दी गई?",
+        modal:    "सृजन को शायद एहसास हुआ हो कि समय सीमा आगे बढ़ा दी गई।"
+      },
+      hypotheses: {
+        negation: "सृजन को पहले नहीं पता था कि समय सीमा बदल गई।",
+        question: "सृजन को पहले से पता था कि समय सीमा बदल गई।",
+        modal:    "सृजन को पहले नहीं पता था कि समय सीमा बदल गई।"
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation makes it unclear whether realization occurred. Prior ignorance cannot be reliably inferred from a negated realization statement." },
+        question: { label: 'N', explanation: "The question asks whether realization happened, leaving prior knowledge open. Whether Srijon already knew cannot be determined." },
+        modal:    { label: 'N', explanation: "The modal introduces uncertainty. Without a clear assertion of the realization, the presupposed prior ignorance does not clearly project." }
+      }
+    },
+    cleft: {
+      sentences: {
+        negation: "यह रमला नहीं थी जिसने कोड में बग खोजा।",
+        question: "क्या यह रमला थी जिसने कोड में बग खोजा?",
+        modal:    "यह शायद रमला थी जिसने कोड में बग खोजा।"
+      },
+      hypotheses: {
+        negation: "किसी ने कोड में बग खोजा।",
+        question: "किसी ने कोड में बग खोजा।",
+        modal:    "किसी ने कोड में बग खोजा।"
+      },
+      results: {
+        negation: { label: 'E', explanation: "The cleft construction presupposes the event even under negation. Denying Ramlah's identity still commits to someone having found the bug." },
+        question: { label: 'N', explanation: "The question only asks about identity. Whether anyone found the bug is not asserted by the cleft question form." },
+        modal:    { label: 'N', explanation: "The modal makes it only possible that Ramlah found the bug. It is unclear whether the event itself is presupposed under the modal." }
+      }
+    }
+  },
+
+  vi: { // Vietnamese — ~87% error rate
+    factive: {
+      sentences: {
+        negation: "Không phải là Cora biết rằng bạn cùng phòng của cô ấy đang chuyển đi.",
+        question: "Cora có biết rằng bạn cùng phòng của cô ấy đang chuyển đi không?",
+        modal:    "Cora có thể biết rằng bạn cùng phòng của cô ấy đang chuyển đi."
+      },
+      hypotheses: {
+        negation: "Bạn cùng phòng của Cora đang chuyển đi.",
+        question: "Bạn cùng phòng của Cora không đang chuyển đi.",
+        modal:    "Bạn cùng phòng của Cora đang chuyển đi."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation makes it uncertain whether knowing holds. The truth of the embedded clause about the roommate moving out cannot be determined." },
+        question: { label: 'N', explanation: "The question does not commit to the embedded proposition. The relationship between premise and hypothesis is indeterminate." },
+        modal:    { label: 'N', explanation: "The modal 'có thể' introduces uncertainty. Without a firm assertion, it cannot be determined whether the presupposed fact holds." }
+      }
+    },
+    aspectual: {
+      sentences: {
+        negation: "Không phải là Claire đã ngừng uống cà phê.",
+        question: "Claire có ngừng uống cà phê không?",
+        modal:    "Claire có thể đã ngừng uống cà phê."
+      },
+      hypotheses: {
+        negation: "Claire từng uống cà phê.",
+        question: "Claire từng uống cà phê.",
+        modal:    "Claire từng uống cà phê."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the stopping. Whether Claire previously drank coffee is not clearly established and the relationship cannot be determined." },
+        question: { label: 'N', explanation: "The question only asks whether stopping occurred. Prior coffee drinking is not asserted and cannot be reliably inferred." },
+        modal:    { label: 'N', explanation: "The modal 'có thể' makes the stopping only possible. Prior coffee drinking is not clearly presupposed under this weaker assertion." }
+      }
+    },
+    iterative: {
+      sentences: {
+        negation: "Không phải là Ramlah lại đạt điểm cao trong bài thi.",
+        question: "Ramlah có lại đạt điểm cao trong bài thi không?",
+        modal:    "Ramlah có thể lại đạt điểm cao trong bài thi."
+      },
+      hypotheses: {
+        negation: "Ramlah đã từng đạt điểm cao trong một bài thi.",
+        question: "Ramlah đã từng đạt điểm cao trong một bài thi.",
+        modal:    "Ramlah chưa bao giờ thi bài này."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies the current instance. Whether a prior high score occurred is not clearly established by the negated premise." },
+        question: { label: 'N', explanation: "The question asks about the current repetition only. Prior success cannot be determined from the question form." },
+        modal:    { label: 'N', explanation: "The modal makes the repetition only possible. A mere possibility does not clearly contradict the claim about never having taken the exam." }
+      }
+    },
+    change: {
+      sentences: {
+        negation: "Không phải là Srijon nhận ra rằng thời hạn đã được rút ngắn.",
+        question: "Srijon có nhận ra rằng thời hạn đã được rút ngắn không?",
+        modal:    "Srijon có thể đã nhận ra rằng thời hạn đã được rút ngắn."
+      },
+      hypotheses: {
+        negation: "Srijon không biết trước về việc thay đổi thời hạn.",
+        question: "Srijon đã biết về sự thay đổi thời hạn.",
+        modal:    "Srijon không biết trước về việc thay đổi thời hạn."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation makes the realization uncertain. Prior ignorance cannot be reliably inferred from the negated change-of-state sentence." },
+        question: { label: 'N', explanation: "The question asks whether realization occurred without asserting it. Prior knowledge status cannot be determined." },
+        modal:    { label: 'N', explanation: "The modal introduces uncertainty about the realization. The presupposed prior ignorance does not clearly project under 'có thể'." }
+      }
+    },
+    cleft: {
+      sentences: {
+        negation: "Không phải Ramlah là người tìm thấy lỗi trong mã nguồn.",
+        question: "Có phải Ramlah là người tìm thấy lỗi trong mã nguồn không?",
+        modal:    "Có thể là Ramlah đã tìm thấy lỗi trong mã nguồn."
+      },
+      hypotheses: {
+        negation: "Ai đó đã tìm thấy lỗi trong mã nguồn.",
+        question: "Ai đó đã tìm thấy lỗi trong mã nguồn.",
+        modal:    "Ai đó đã tìm thấy lỗi trong mã nguồn."
+      },
+      results: {
+        negation: { label: 'N', explanation: "The negation denies Ramlah's involvement. Whether anyone found the bug at all is not clearly established by the negated cleft." },
+        question: { label: 'N', explanation: "The cleft question only asks about identity. The existence of the bug-finding event cannot be inferred from the question alone." },
+        modal:    { label: 'E', explanation: "Even under the modal, the cleft presupposition projects. The event of finding the bug is still presupposed; only who did it is uncertain." }
+      }
+    }
+  }
+};
+
+const LANGUAGES = [
+  { id: 'en', label: 'English' },
+  { id: 'de', label: 'German' },
+  { id: 'fr', label: 'French' },
+  { id: 'ru', label: 'Russian' },
+  { id: 'hi', label: 'Hindi' },
+  { id: 'vi', label: 'Vietnamese' }
+];
+
 const ENVS = [
   { id: 'negation', label: 'Negation' },
   { id: 'question', label: 'Question' },
@@ -508,6 +993,17 @@ const LABEL_NAMES = { E: 'Entailment', C: 'Contradiction', N: 'Neutral' };
 
 let selectedTrigger = TRIGGERS[0];
 let selectedEnv = 'negation';
+let selectedLang = 'en';
+
+function getLangData() {
+  if (selectedLang === 'en') return null;
+  return LANG_DATA[selectedLang]?.[selectedTrigger.id];
+}
+
+function renderLangs() {
+  document.getElementById('langGrid').innerHTML = LANGUAGES.map(l => `
+    <button class="lang-btn ${l.id === selectedLang ? 'active' : ''}" onclick="selectLang('${l.id}')">${l.label}</button>`).join('');
+}
 
 function renderTriggers() {
   document.getElementById('triggerGrid').innerHTML = TRIGGERS.map(t => `
@@ -523,10 +1019,17 @@ function renderEnvs(gridId, selected, fn) {
 }
 
 function updateSentence() {
-  document.getElementById('sentenceDisplay').textContent = selectedTrigger.sentences[selectedEnv];
+  const ld = getLangData();
+  document.getElementById('sentenceDisplay').textContent = ld ? ld.sentences[selectedEnv] : selectedTrigger.sentences[selectedEnv];
   document.getElementById('presupDisplay').textContent = selectedTrigger.presup;
-  document.getElementById('hypothesisInput').value = selectedTrigger.hypotheses[selectedEnv];
+  document.getElementById('hypothesisInput').value = ld ? ld.hypotheses[selectedEnv] : selectedTrigger.hypotheses[selectedEnv];
   document.getElementById('resultCard').style.display = 'none';
+}
+
+function selectLang(id) {
+  selectedLang = id;
+  renderLangs();
+  updateSentence();
 }
 
 function selectTrigger(id) {
@@ -542,7 +1045,8 @@ function selectEnv(id) {
 }
 
 function runTest() {
-  const result = selectedTrigger.results[selectedEnv];
+  const ld = getLangData();
+  const result = ld ? ld.results[selectedEnv] : selectedTrigger.results[selectedEnv];
   const gold = selectedTrigger.gold[selectedEnv];
   const card = document.getElementById('resultCard');
   const badge = document.getElementById('labelBadge');
@@ -565,6 +1069,7 @@ function runTest() {
   }
 }
 
+renderLangs();
 renderTriggers();
 renderEnvs('envGrid', selectedEnv, 'selectEnv');
 updateSentence();
